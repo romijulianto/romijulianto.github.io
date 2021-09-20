@@ -1,0 +1,189 @@
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <meta
+        name="viewport"
+        content="initial-scale=1,maximum-scale=1,user-scaleable=no"/>
+        <!-- Base mapbox-->
+        <script src="https://api.mapbox.com/mapbox-gl-js/v2.4.1/mapbox-gl.js"></script>
+        <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v2.4.1/mapbox-gl.css"/> 
+        <link rel="stylesheet" href="./css/style.css" type="text/css"/>
+
+        <!--Mapbox Geocode-->
+        <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.min.js"></script>
+        <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.css"/>
+
+        <!--Mapbox Route / Directions-->
+        <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.1.0/mapbox-gl-directions.js"></script>
+        <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.1.0/mapbox-gl-directions.css"/>
+
+    </head>
+    <body>
+        <div>
+            <div id="sidebar">
+                <strong>Lokasi Penelitian</strong><br> 
+                <button id="btn-lintasan-penelitian" class="button-change" onclick="hideLayer()">Hide</button>
+                <br>
+
+                <strong>Pass Satelit Nomor 153</strong><br> 
+                <button id="btn-pass-153" class="button-change" onclick="hideLayerPass()">Hide</button>
+
+            </div>
+            <div id="map">
+                <div id="button-map">
+                    <button class="button-change" onclick="changeMap('streets-v11')">Streets</button>
+                    <button class="button-change" onclick="changeMap('satellite-v9')">Satellite</button>
+                </div>
+            </div>
+            <script type="text/javascript">
+                mapboxgl.accessToken = 'pk.eyJ1Ijoicm9taWp1bGlhbnRvIiwiYSI6ImNrdDVlOHJwNzAxNHEyd3BoZmFvanpmZ2gifQ.YqfTeoBPOr3gKLhJ8bV3VQ';
+                const map = new mapboxgl.Map({
+                    container : "map",
+                    style : "mapbox://styles/mapbox/streets-v11",
+                    center : [104.6929235,-2.954794],
+                    zoom : 6
+                });
+
+                map.addControl(
+                    new MapboxGeocoder({
+                        accessToken : mapboxgl.accessToken,
+                        mapboxgl : mapboxgl
+                    })
+                );
+
+
+                map.addControl(new mapboxgl.NavigationControl());
+                map.addControl(new mapboxgl.FullscreenControl());
+
+                map.once('load', function(){
+                    let geolocate = document.getElementsByClassName("mapboxgl-ctrl-geolocate");
+                    setTimeout(function(){
+                        geolocate[0].click();
+                    },20);
+                    getLayers();
+                });
+
+                function changeMap(basemap){
+                    map.setStyle("mapbox://styles/mapbox/" + basemap);
+                }
+                
+                // function getLayers Lintasan Penelitian
+                async function getLayers(){
+                    let geojson = await getOnlineData();
+                    map.addSource("src-lintasan-penelitian",{
+                        type : "geojson",
+                        data : geojson
+                    });
+
+                    map.addLayer({
+                        id : "lyr-lintasan-penelitian",
+                        type : "fill",
+                        source : "src-lintasan-penelitian",
+                        paint : {
+                            "fill-color" : "yellow",
+                            "fill-outline-color" : "yellow",
+                            "fill-opacity" : 1
+                        }
+                    });
+
+                }
+
+                // function getLayers pass 153
+                async function getLayersPass(){
+                    let geojson = await getOnlineDataPass();
+                    map.addSource("src-pass-153",{
+                        type : "geojson",
+                        data : geojson
+                    });
+
+                    map.addLayer({
+                        id : "lyr-pass-153",
+                        type : "fill",
+                        source : "src-pass-153",
+                        paint : {
+                            "fill-color" : "blue",
+                            "fill-outline-color" : "blue",
+                            "fill-opacity" : 1
+                        }
+                    });
+
+                }
+
+                // getOnlineData Lintasan Penelitian from server mapid
+                async function getOnlineData(){
+                    try{
+                        let geojson;
+                        await fetch("https://server.mapid.io/layers_new/get_layer?api_key=c31373ff8be243c0b27cc15658e98adc&layer_id=6148280d7f1a580df64ccb2d&project_id=614817a102ffff0e2ef15e27",
+                        {method : "GET"}
+                    ).then((response) => response.json())
+                    .then((data) => geojson = data.geojson);
+                    console.log(geojson);
+                    return geojson;
+                    }catch(err){
+                        console.log(err);
+                    }
+
+                }
+
+                // getOnlineData Pass 153 from server mapid
+                async function getOnlineDataPass(){
+                    try{
+                        let geojson;
+                        await fetch("https://server.mapid.io/layers_new/get_layer?api_key=c31373ff8be243c0b27cc15658e98adc&layer_id=614825fbd5cba87cbc59b3f7&project_id=614817a102ffff0e2ef15e27",
+                        {method : "GET"}
+                    ).then((response) => response.json())
+                    .then((data) => geojson = data.geojson);
+                    console.log(geojson);
+                    return geojson;
+                    }catch(err){
+                        console.log(err);
+                    }
+
+                }
+
+                // function hidelayer for lintasan penelitian
+                function hideLayer(){
+                    let val = document.getElementById('btn-lintasan-penelitian').innerHTML;
+                    let newVal = '';
+
+                    if(val === "Hide"){
+                        newVal = "none";
+                        document.getElementById('btn-lintasan-penelitian').innerHTML = "Show";
+                    }
+                    else{
+                        newVal = "visible";
+                        document.getElementById('btn-lintasan-penelitian').innerHTML = "Hide";
+                    }
+
+                    map.setLayoutProperty(
+                        'lyr-lintasan-penelitian',
+                        'visibility',
+                        newVal
+                    );
+                }
+
+                // function hidelayer for pass 153
+                function hideLayerPass(){
+                    let val = document.getElementById('btn-pass-153').innerHTML;
+                    let newVal = '';
+
+                    if(val === "Hide"){
+                        newVal = "none";
+                        document.getElementById('btn-pass-153').innerHTML = "Show";
+                    }
+                    else{
+                        newVal = "visible";
+                        document.getElementById('btn-pass-153').innerHTML = "Hide";
+                    }
+
+                    map.setLayoutProperty(
+                        'lyr-pass-153',
+                        'visibility',
+                        newVal
+                    );
+                }
+
+            </script>
+        </div>
+    </body>
+</html>
